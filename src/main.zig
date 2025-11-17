@@ -30,6 +30,11 @@ pub fn main() !void {
     const cx = 62;
     const cy = 53;
 
+    line(.{ .x = ax, .y = ay }, .{ .x = bx, .y = by }, &framebuffer, blue);
+    line(.{ .x = cx, .y = cy }, .{ .x = bx, .y = by }, &framebuffer, green);
+    line(.{ .x = cx, .y = cy }, .{ .x = ax, .y = ay }, &framebuffer, yellow);
+    line(.{ .x = ax, .y = ay }, .{ .x = cx, .y = cy }, &framebuffer, red);
+
     framebuffer.pixels.bgra32[atPixel(width, ax, ay)] = white;
     framebuffer.pixels.bgra32[atPixel(width, bx, by)] = white;
     framebuffer.pixels.bgra32[atPixel(width, cx, cy)] = white;
@@ -37,11 +42,40 @@ pub fn main() !void {
     var write_buffer: [zimg.io.DEFAULT_BUFFER_SIZE]u8 = undefined;
 
     // OUTPUT TGA FILE
-    // try tga_framebuffer.writeToFilePath(allocator, "framebuffer.tga", write_buffer[0..], .{ .tga = .{ .author_name = "yo-reign" } });
+    // try framebuffer.writeToFilePath(
+    //     allocator,
+    //     "framebuffer.tga",
+    //     write_buffer[0..],
+    //     .{ .tga = .{ .author_name = "yo-reign" } },
+    // );
 
     // OUTPUT AS PNG INSTEAD
     try framebuffer.convert(allocator, .rgba32);
-    try framebuffer.writeToFilePath(allocator, "framebuffer.png", write_buffer[0..], .{ .png = .{ .filter_choice = .{ .specified = .none } } });
+    try framebuffer.writeToFilePath(
+        allocator,
+        "framebuffer.png",
+        write_buffer[0..],
+        .{ .png = .{ .filter_choice = .{ .specified = .none } } },
+    );
+}
+
+fn line(
+    from: struct { x: usize, y: usize },
+    to: struct { x: usize, y: usize },
+    framebuffer: *zimg.Image,
+    color: zimg.color.Bgra32,
+) void {
+    var t: f32 = 0;
+    const delta_x = @as(i32, @intCast(to.x)) - @as(i32, @intCast(from.x));
+    const delta_y = @as(i32, @intCast(to.y)) - @as(i32, @intCast(from.y));
+
+    while (t < 1) {
+        defer t += 0.02;
+        const x: usize = @intFromFloat(@round(@as(f32, @floatFromInt(from.x)) + t * @as(f32, @floatFromInt(delta_x))));
+        const y: usize = @intFromFloat(@round(@as(f32, @floatFromInt(from.y)) + t * @as(f32, @floatFromInt(delta_y))));
+
+        framebuffer.pixels.bgra32[atPixel(framebuffer.width, x, y)] = color;
+    }
 }
 
 fn atPixel(framebuffer_width: usize, x: usize, y: usize) usize {
