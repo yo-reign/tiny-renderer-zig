@@ -1,6 +1,8 @@
 const std = @import("std");
 const zimg = @import("zigimg");
 
+const PixelCoord = struct { x: usize, y: usize };
+
 const white = zimg.Colors(zimg.color.Bgra32).White;
 const green = zimg.Colors(zimg.color.Bgra32).Green;
 const red = zimg.Colors(zimg.color.Bgra32).Red;
@@ -35,9 +37,9 @@ pub fn main() !void {
     line(.{ .x = cx, .y = cy }, .{ .x = ax, .y = ay }, &framebuffer, yellow);
     line(.{ .x = ax, .y = ay }, .{ .x = cx, .y = cy }, &framebuffer, red);
 
-    framebuffer.pixels.bgra32[atPixel(width, ax, ay)] = white;
-    framebuffer.pixels.bgra32[atPixel(width, bx, by)] = white;
-    framebuffer.pixels.bgra32[atPixel(width, cx, cy)] = white;
+    drawPixel(&framebuffer, ax, ay, white);
+    drawPixel(&framebuffer, bx, by, white);
+    drawPixel(&framebuffer, cx, cy, white);
 
     var write_buffer: [zimg.io.DEFAULT_BUFFER_SIZE]u8 = undefined;
 
@@ -60,22 +62,34 @@ pub fn main() !void {
 }
 
 fn line(
-    from: struct { x: usize, y: usize },
-    to: struct { x: usize, y: usize },
+    from: PixelCoord,
+    to: PixelCoord,
     framebuffer: *zimg.Image,
     color: zimg.color.Bgra32,
 ) void {
+    var a = from;
+    var b = to;
+
+    // Ensure left to right
+    if (a.x > b.x) {
+        std.mem.swap(PixelCoord, &a, &b);
+    }
+
     const delta_y = @as(i32, @intCast(to.y)) - @as(i32, @intCast(from.y));
     var x = from.x;
     while (x < to.x) {
         defer x += 1;
-        const t = @as(f32, @floatFromInt((x - from.x))) / @as(f32, @floatFromInt(to.x - from.x));
-        const y: usize = @intFromFloat(@round(@as(f32, @floatFromInt(from.y)) + t * @as(f32, @floatFromInt(delta_y))));
+        const t = @as(f32, @floatFromInt((x - a.x))) / @as(f32, @floatFromInt(b.x - a.x));
+        const y: usize = @intFromFloat(@round(@as(f32, @floatFromInt(a.y)) + t * @as(f32, @floatFromInt(delta_y))));
 
-        framebuffer.pixels.bgra32[atPixel(framebuffer.width, x, y)] = color;
+        drawPixel(framebuffer, x, y, color);
     }
 }
 
-fn atPixel(framebuffer_width: usize, x: usize, y: usize) usize {
+fn findPixelIndex(framebuffer_width: usize, x: usize, y: usize) usize {
     return ((y * framebuffer_width) + x);
+}
+
+fn drawPixel(framebuffer: *zimg.Image, x: usize, y: usize, brga_color: zimg.color.Bgra32) void {
+    framebuffer.pixels.bgra32[findPixelIndex(framebuffer.width, x, y)] = brga_color;
 }
