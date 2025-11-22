@@ -70,19 +70,30 @@ fn line(
     var a = from;
     var b = to;
 
+    const is_steep = @abs(@as(i32, @intCast(a.x)) - @as(i32, @intCast(b.x))) < @abs(@as(i32, @intCast(a.y)) - @as(i32, @intCast(b.y)));
+    if (is_steep) {
+        std.mem.swap(usize, &a.x, &a.y);
+        std.mem.swap(usize, &b.x, &b.y);
+    }
+
     // Ensure left to right
     if (a.x > b.x) {
         std.mem.swap(PixelCoord, &a, &b);
     }
 
-    const delta_y = @as(i32, @intCast(to.y)) - @as(i32, @intCast(from.y));
-    var x = from.x;
-    while (x < to.x) {
+    const delta_y = @as(i32, @intCast(b.y)) - @as(i32, @intCast(a.y));
+
+    var x = a.x;
+    while (x <= b.x) {
         defer x += 1;
         const t = @as(f32, @floatFromInt((x - a.x))) / @as(f32, @floatFromInt(b.x - a.x));
         const y: usize = @intFromFloat(@round(@as(f32, @floatFromInt(a.y)) + t * @as(f32, @floatFromInt(delta_y))));
 
-        drawPixel(framebuffer, x, y, color);
+        if (is_steep) {
+            drawPixel(framebuffer, y, x, color);
+        } else {
+            drawPixel(framebuffer, x, y, color);
+        }
     }
 }
 
