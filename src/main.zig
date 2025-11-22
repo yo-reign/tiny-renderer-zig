@@ -65,13 +65,11 @@ fn line(
     framebuffer: *zimg.Image,
     color: zimg.color.Bgra32,
 ) void {
-    var t: f32 = 0;
-    const delta_x = @as(i32, @intCast(to.x)) - @as(i32, @intCast(from.x));
     const delta_y = @as(i32, @intCast(to.y)) - @as(i32, @intCast(from.y));
-
-    while (t < 1) {
-        defer t += 0.02;
-        const x: usize = @intFromFloat(@round(@as(f32, @floatFromInt(from.x)) + t * @as(f32, @floatFromInt(delta_x))));
+    var x = from.x;
+    while (x < to.x) {
+        defer x += 1;
+        const t = @as(f32, @floatFromInt((x - from.x))) / @as(f32, @floatFromInt(to.x - from.x));
         const y: usize = @intFromFloat(@round(@as(f32, @floatFromInt(from.y)) + t * @as(f32, @floatFromInt(delta_y))));
 
         framebuffer.pixels.bgra32[atPixel(framebuffer.width, x, y)] = color;
